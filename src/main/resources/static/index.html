@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+    <meta charset="UTF-8">
+    <title>Parking System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+    <style>
+        th, td {
+            text-align: center;
+            vertical-align: middle;
+        }
+    </style>
+
+</head>
+<body class="bg-light" style="direction: rtl;">
+
+<div class="container mt-4">
+    <h2 class="mb-3" style="text-align: center">سامانه ثبت ورود خودرو</h2>
+    <div class="row g-2 mb-4">
+        <div class="col-md-3">
+            <input id="licensePlate" class="form-control" placeholder="پلاک خودرو">
+        </div>
+        <div class="col-md-3">
+            <input id="vehicleType" class="form-control" placeholder="نوع خودرو">
+        </div>
+        <div class="col-md-3">
+            <input id="spotId" type="number" class="form-control" placeholder="شناسه جای پارک">
+        </div>
+        <div class="col-md-3">
+            <button class="btn btn-success w-100" onclick="registerEntry()">ثبت ورود</button>
+        </div>
+    </div>
+
+    <h2 class="mb-3" style="text-align: center">رکوردهای پارکینگ</h2>
+    <table class="table table-striped table-bordered table-hover bg-white">
+        <thead class="table-success">
+        <tr>
+            <th>ID</th>
+            <th>پلاک خودرو</th>
+            <th>نام خودرو</th>
+            <th>شماره پارگینک</th>
+            <th>زمان ورود</th>
+            <th>زمان خروج</th>
+            <th>مبلغ قابل پرداخت</th>
+            <th>عملیات</th>
+        </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+</div>
+
+<script>
+    const apiUrl = '/api/parking';
+
+    function loadRecords() {
+        fetch(apiUrl)
+            .then(res => res.json())
+            .then(records => {
+                const tbody = document.querySelector("table tbody");
+                tbody.innerHTML = '';
+                records.forEach(r => {
+                    const row = document.createElement("tr");
+                    row.innerHTML = `
+                    <td>${r.id}</td>
+                    <td>${r.licensePlate}</td>
+                    <td>${r.vehicleType}</td>
+                    <td>${r.spotId}</td>
+                    <td>${r.entryTime || ''}</td>
+                    <td>${r.exitTime || ''}</td>
+                    <td>${r.parkingFee || ''}</td>
+                    <td>
+                        <button class="btn btn-primary btn-sm me-1" onclick="registerExit(${r.id})">خروج</button>
+                        <button class="btn btn-danger btn-sm" onclick="deleteRecord(${r.id})">حذف</button>
+                    </td>
+                `;
+                    tbody.appendChild(row);
+                });
+            });
+    }
+
+    function registerEntry() {
+        const record = {
+            licensePlate: document.getElementById('licensePlate').value,
+            vehicleType: document.getElementById('vehicleType').value,
+            spotId: parseInt(document.getElementById('spotId').value)
+        };
+
+        fetch(apiUrl + '/entry', {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify(record)
+        })
+            .then(res => {
+                if (!res.ok) {
+                    return res.text().then(text => { throw new Error(text) });
+                }
+                return res.json();
+            })
+            .then(() => loadRecords())
+            .catch(err => alert(err.message));
+    }
+
+
+    function registerExit(id) {
+        fetch(apiUrl + '/exit/' + id, { method: 'POST' })
+            .then(() => loadRecords());
+    }
+
+    function deleteRecord(id) {
+        fetch(apiUrl + '/' + id, { method: 'DELETE' })
+            .then(() => loadRecords());
+    }
+
+    loadRecords();
+</script>
+
+</body>
+</html>
